@@ -26,7 +26,9 @@ public class playerController : MonoBehaviour
     private AudioSource KOSFX;
 
     private Animator playerAnimator;
+    private SpriteRenderer playerSpriteRenderer;
     private bool hasSpawnedKO = false;
+    private Vector2 movementVector = new Vector2();
     // Start is called before the first frame update
     void Start()
     {
@@ -36,6 +38,7 @@ public class playerController : MonoBehaviour
         KOSFX = KOSFXObject.GetComponent<AudioSource>();
         mainCamera = GameObject.Find("Main Camera");
         playerAnimator = GetComponent<Animator>();
+        playerSpriteRenderer = gameObject.transform.GetChild(0).GetComponent<SpriteRenderer>();
     }
 
     bool isOutOfKOBounds()
@@ -48,12 +51,22 @@ public class playerController : MonoBehaviour
         );
     }
 
+    void FixedUpdate() {
+        float movementX = movementVector.x != 0 ? movementVector.x : playerRigidbody.velocity.x;
+        float movementY = movementVector.y != 0 ? movementVector.y : playerRigidbody.velocity.y;
+
+        playerRigidbody.velocity = new Vector2(movementX, movementY);
+        movementVector.y = 0;
+        movementVector.x = 0;
+        print(playerRigidbody.velocity);
+    }
+
     // Update is called once per frame
     void Update()
     {
         if (isOutOfKOBounds()) { 
             if (!hasSpawnedKO) {
-                GameObject KOEffectParticleObjectLocal = UnityEngine.Object.Instantiate(KOEffectParticleObject);
+                GameObject KOEffectParticleObjectLocal = Instantiate(KOEffectParticleObject);
                 KOEffectParticleObjectLocal.transform.position = new Vector3(
                     transform.position.x,
                     transform.position.y,
@@ -72,15 +85,18 @@ public class playerController : MonoBehaviour
         bool isRunning = false;
 
         if (Input.GetKey("a")) {
-            playerRigidbody.AddForce(Vector3.left * moveSpeed);
+            movementVector.x = -moveSpeed;
             isRunning = !isRunning;
+            playerSpriteRenderer.flipX = false;
+
         }
         if (Input.GetKey("d")) {
-            playerRigidbody.AddForce(Vector3.right * moveSpeed);
+            movementVector.x = moveSpeed;
             isRunning = !isRunning;
+            playerSpriteRenderer.flipX = true;
         }
         if (Input.GetKeyDown("w") && jumpsLeft > 0) {
-            playerRigidbody.AddForce(Vector3.up * jumpSpeed, ForceMode2D.Impulse);
+            movementVector.y = jumpSpeed;
             jumpsLeft--;
         }
 
