@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
+using UnityEditor.SearchService;
 using UnityEngine;
 
 public class playerController : MonoBehaviour
@@ -28,6 +30,11 @@ public class playerController : MonoBehaviour
     private Animator playerAnimator;
     private SpriteRenderer playerSpriteRenderer;
     private bool hasSpawnedKO = false;
+
+    public bool isFlipped = false;
+    public int attachedController;
+    public TMP_Text damagePercentDisplay;
+    private int damagePercent = 0;
     private Vector2 movementVector = new Vector2();
     // Start is called before the first frame update
     void Start()
@@ -58,7 +65,6 @@ public class playerController : MonoBehaviour
         playerRigidbody.velocity = new Vector2(movementX, movementY);
         movementVector.y = 0;
         movementVector.x = 0;
-        print(playerRigidbody.velocity);
     }
 
     // Update is called once per frame
@@ -80,24 +86,28 @@ public class playerController : MonoBehaviour
                 KOSFX.Play();
                 hasSpawnedKO = true;
             }
+            Destroy(gameObject);
         }
 
         bool isRunning = false;
 
-        if (Input.GetKey("a")) {
-            movementVector.x = -moveSpeed;
-            isRunning = !isRunning;
-            playerSpriteRenderer.flipX = false;
+        if (attachedController != -1) {
 
-        }
-        if (Input.GetKey("d")) {
-            movementVector.x = moveSpeed;
-            isRunning = !isRunning;
-            playerSpriteRenderer.flipX = true;
-        }
-        if (Input.GetKeyDown("w") && jumpsLeft > 0) {
-            movementVector.y = jumpSpeed;
-            jumpsLeft--;
+            if (Input.GetKey("a")) {
+                movementVector.x = -moveSpeed;
+                isRunning = !isRunning;
+                setSpriteFlipped(false);
+
+            }
+            if (Input.GetKey("d")) {
+                movementVector.x = moveSpeed;
+                isRunning = !isRunning;
+                setSpriteFlipped(true);
+            }
+            if (Input.GetKeyDown("w") && jumpsLeft > 0) {
+                movementVector.y = jumpSpeed;
+                jumpsLeft--;
+            }
         }
 
         playerAnimator.SetBool("isRunning", isRunning);
@@ -109,10 +119,36 @@ public class playerController : MonoBehaviour
         
     }
 
+    void setSpriteFlipped(bool flipped) {
+        if (isFlipped == flipped) return;
+        print("setting!");
+        if (flipped) {
+            transform.localScale = new Vector3(-1, 1, 1);
+            transform.position = new Vector3(transform.position.x + 1, transform.position.y, transform.position.z);
+            damagePercentDisplay.transform.localScale = new Vector3(-1, 1, 1);
+        } else {
+            transform.localScale = new Vector3(1, 1, 1);
+            transform.position = new Vector3(transform.position.x - 1, transform.position.y, transform.position.z);
+            damagePercentDisplay.transform.localScale = new Vector3(1, 1, 1);
+            
+        }
+        isFlipped = flipped;
+
+    }
+
+    public void takeDamage(Vector2 velocity, Vector2 impact) {
+        
+        damagePercent += (int) velocity.magnitude;
+        damagePercentDisplay.text = damagePercent.ToString() + "%";
+        playerRigidbody.AddForce(impact * damagePercent);
+    }
+
     void OnCollisionEnter2D(Collision2D col)
     {
-        if (col.gameObject.tag == "Floor") {
-            jumpsLeft = maxJumps;
+        if (col.gameObject.tag == "Floor" || col.gameObject.tag == "Player") {
+            if (col.transform.position.y > transform.position.y || col.transform.position.y < transform.position.y) {
+                jumpsLeft = maxJumps;
+            }
         }
     }
 }
